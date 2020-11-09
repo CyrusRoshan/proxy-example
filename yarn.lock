@@ -1311,10 +1311,10 @@ terser@^5.3.8:
     source-map "~0.7.2"
     source-map-support "~0.5.19"
 
-the-proxy-client@0.2.0:
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/the-proxy-client/-/the-proxy-client-0.2.0.tgz#c86b0ac1c6a8102405b2a66365762942d7bfbbc9"
-  integrity sha512-5fhzJgG+fj8loELvBPiytxm/FbYyI97V34aqljLmyawdygzs6Wg1osSEyhghLXph5sWyN9m09vFg9wR5y0JGtQ==
+the-proxy-client@0.2.1:
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/the-proxy-client/-/the-proxy-client-0.2.1.tgz#15c6cf6403cc45dc19893a78e12ae5cfce9b6ad1"
+  integrity sha512-gvquMArwBmV+nxhwofvedzMySBH2sVyUigpDiJPHmVcuNuOh2oByEE/rvSPnutuIRLkbsre2HVkWDe8t5tgrLQ==
   dependencies:
     "@types/url-parse" "^1.4.3"
     url-parse "^1.4.7"
