@@ -1,319 +1,17 @@
 /******/ (() => { // webpackBootstrap
-/******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 129:
-/***/ ((__unused_webpack_module, exports) => {
-
-
-
-var has = Object.prototype.hasOwnProperty
-  , undef;
-
-/**
- * Decode a URI encoded string.
- *
- * @param {String} input The URI encoded string.
- * @returns {String|Null} The decoded string.
- * @api private
- */
-function decode(input) {
-  try {
-    return decodeURIComponent(input.replace(/\+/g, ' '));
-  } catch (e) {
-    return null;
-  }
-}
-
-/**
- * Attempts to encode a given input.
- *
- * @param {String} input The string that needs to be encoded.
- * @returns {String|Null} The encoded string.
- * @api private
- */
-function encode(input) {
-  try {
-    return encodeURIComponent(input);
-  } catch (e) {
-    return null;
-  }
-}
-
-/**
- * Simple query string parser.
- *
- * @param {String} query The query string that needs to be parsed.
- * @returns {Object}
- * @api public
- */
-function querystring(query) {
-  var parser = /([^=?#&]+)=?([^&]*)/g
-    , result = {}
-    , part;
-
-  while (part = parser.exec(query)) {
-    var key = decode(part[1])
-      , value = decode(part[2]);
-
-    //
-    // Prevent overriding of existing properties. This ensures that build-in
-    // methods like `toString` or __proto__ are not overriden by malicious
-    // querystrings.
-    //
-    // In the case if failed decoding, we want to omit the key/value pairs
-    // from the result.
-    //
-    if (key === null || value === null || key in result) continue;
-    result[key] = value;
-  }
-
-  return result;
-}
-
-/**
- * Transform a query string to an object.
- *
- * @param {Object} obj Object that should be transformed.
- * @param {String} prefix Optional prefix.
- * @returns {String}
- * @api public
- */
-function querystringify(obj, prefix) {
-  prefix = prefix || '';
-
-  var pairs = []
-    , value
-    , key;
-
-  //
-  // Optionally prefix with a '?' if needed
-  //
-  if ('string' !== typeof prefix) prefix = '?';
-
-  for (key in obj) {
-    if (has.call(obj, key)) {
-      value = obj[key];
-
-      //
-      // Edge cases where we actually want to encode the value to an empty
-      // string instead of the stringified value.
-      //
-      if (!value && (value === null || value === undef || isNaN(value))) {
-        value = '';
-      }
-
-      key = encode(key);
-      value = encode(value);
-
-      //
-      // If we failed to encode the strings, we should bail out as we don't
-      // want to add invalid strings to the query.
-      //
-      if (key === null || value === null) continue;
-      pairs.push(key +'='+ value);
-    }
-  }
-
-  return pairs.length ? prefix + pairs.join('&') : '';
-}
-
-//
-// Expose the module.
-//
-exports.stringify = querystringify;
-exports.parse = querystring;
-
-
-/***/ }),
-
-/***/ 418:
+/***/ 695:
 /***/ ((module) => {
 
-
-
-/**
- * Check if we're required to add a port number.
- *
- * @see https://url.spec.whatwg.org/#default-port
- * @param {Number|String} port Port number we need to check
- * @param {String} protocol Protocol we need to check against.
- * @returns {Boolean} Is it a default port for the given protocol
- * @api private
- */
-module.exports = function required(port, protocol) {
-  protocol = protocol.split(':')[0];
-  port = +port;
-
-  if (!port) return false;
-
-  switch (protocol) {
-    case 'http':
-    case 'ws':
-    return port !== 80;
-
-    case 'https':
-    case 'wss':
-    return port !== 443;
-
-    case 'ftp':
-    return port !== 21;
-
-    case 'gopher':
-    return port !== 70;
-
-    case 'file':
-    return false;
-  }
-
-  return port !== 0;
-};
-
-
-/***/ }),
-
-/***/ 187:
-/***/ ((__unused_webpack_module, exports) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.env = void 0;
-const proxyHost = 'proxy.googster.net';
-exports.env = {
-    proxyHost: proxyHost,
-    cookieHost: 'cookies.' + proxyHost,
-};
-
-
-/***/ }),
-
-/***/ 695:
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.convert = void 0;
-const URLParse = __webpack_require__(564);
-const env_1 = __webpack_require__(187);
-const utils_1 = __webpack_require__(306);
-exports.convert = {
-    ToProxiedURL: (url) => {
-        if (utils_1.isRelativeURL(url)) {
-            return { url: url };
-        }
-        if (utils_1.isProxiedURL(url)) {
-            return { url: url };
-        }
-        let parsed = new URLParse(url);
-        if (parsed.host === '') {
-            const modifiedURL = utils_1.retryIfMissingScheme(parsed, url);
-            if (!modifiedURL) {
-                return { error: 'empty host, could not retry' };
-            }
-            parsed = new URLParse(modifiedURL);
-            // @ts-ignore
-            parsed.host = parsed.host;
-            // @ts-ignore
-            parsed.protocol = '';
-        }
-        var convertedScheme;
-        var domainOnly;
-        if (parsed.protocol === 'http:') {
-            convertedScheme = 'h';
-            domainOnly = false;
-        }
-        else if (parsed.protocol === 'https:') {
-            convertedScheme = 's';
-            domainOnly = false;
-        }
-        else if (parsed.protocol === '') {
-            if (parsed.pathname === '' && !url.startsWith('//')) {
-                // likely a domain, could be wrong here...
-                convertedScheme = '';
-                domainOnly = true;
-            }
-            else {
-                convertedScheme = 'o'; // links that begin with //
-                domainOnly = false;
-            }
-        }
-        else {
-            return { error: 'unknown protocol' };
-        }
-        const convertedHost = parsed.host.split('.').join('_');
-        const modified = new URLParse(parsed.toString());
-        let proxiedURL;
-        if (domainOnly) {
-            // @ts-ignore
-            modified.host = convertedHost + '.' + env_1.env.proxyHost;
-            // @ts-ignore
-            modified.protocol = '';
-            proxiedURL = utils_1.trimPrefix(modified.toString(), '//');
-        }
-        else {
-            // @ts-ignore
-            modified.host = convertedScheme + '_' + convertedHost + '.' + env_1.env.proxyHost;
-            // @ts-ignore
-            modified.protocol = 'https';
-            proxiedURL = modified.toString();
-        }
-        return { url: proxiedURL };
-    },
-};
-
-
-/***/ }),
-
-/***/ 306:
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.retryIfMissingScheme = exports.trimPrefix = exports.isProxiedURL = exports.isOriginalURL = exports.isRelativeURL = void 0;
-const URLParse = __webpack_require__(564);
-const env_1 = __webpack_require__(187);
-exports.isRelativeURL = (url) => {
-    if (url.startsWith('//')) {
-        return false;
-    }
-    return url.startsWith('/');
-};
-exports.isOriginalURL = (url) => {
-    const fallback = !url.includes(env_1.env.proxyHost);
-    try {
-        const parsed = new URLParse(url);
-        if (parsed.host === '') {
-            return fallback;
-        }
-        return !parsed.host.includes(env_1.env.proxyHost);
-    }
-    catch (e) {
-        return fallback;
-    }
-};
-exports.isProxiedURL = (url) => {
-    return !exports.isOriginalURL(url);
-};
-exports.trimPrefix = (s, prefix) => {
-    if (s.indexOf(prefix) != -1) {
-        return s.substr(prefix.length);
-    }
-    return s;
-};
-exports.retryIfMissingScheme = (parsed, triedURL) => {
-    if (parsed.protocol == '' && parsed.pathname == triedURL) {
-        const modifiedURL = 'https://' + triedURL;
-        return modifiedURL;
-    }
-    return undefined;
-};
-
+module.exports=(()=>{"use strict";var e={129:(e,t)=>{var o=Object.prototype.hasOwnProperty;function r(e){try{return decodeURIComponent(e.replace(/\+/g," "))}catch(e){return null}}function n(e){try{return encodeURIComponent(e)}catch(e){return null}}t.stringify=function(e,t){t=t||"";var r,s,a=[];for(s in"string"!=typeof t&&(t="?"),e)if(o.call(e,s)){if((r=e[s])||null!=r&&!isNaN(r)||(r=""),s=n(s),r=n(r),null===s||null===r)continue;a.push(s+"="+r)}return a.length?t+a.join("&"):""},t.parse=function(e){for(var t,o=/([^=?#&]+)=?([^&]*)/g,n={};t=o.exec(e);){var s=r(t[1]),a=r(t[2]);null===s||null===a||s in n||(n[s]=a)}return n}},418:e=>{e.exports=function(e,t){if(t=t.split(":")[0],!(e=+e))return!1;switch(t){case"http":case"ws":return 80!==e;case"https":case"wss":return 443!==e;case"ftp":return 21!==e;case"gopher":return 70!==e;case"file":return!1}return 0!==e}},392:(e,t)=>{Object.defineProperty(t,"__esModule",{value:!0}),t.env=void 0;const o="localproxy.googster.net";t.env={proxyHost:o,cookieHost:"cookies."+o}},607:function(e,t,o){var r=this&&this.__importDefault||function(e){return e&&e.__esModule?e:{default:e}};Object.defineProperty(t,"__esModule",{value:!0}),t.frame=t.MessageType=void 0;const n=r(o(564)),s=o(392),a=o(593);var i;!function(e){e.eval="eval",e.evalwrap="evalwrap",e.response="response",e.unload="unload"}(i=t.MessageType||(t.MessageType={}));const l=e=>{if(a.isRelativeURL(e))return{url:e};if(a.isProxiedURL(e))return{url:e};let t=new n.default(e);if(""===t.host){const o=a.retryIfMissingScheme(t,e);if(!o)return{error:"empty host, could not retry"};t=new n.default(o),t.host=t.host,t.protocol=""}var o,r;if("http:"===t.protocol)o="h",r=!1;else if("https:"===t.protocol)o="s",r=!1;else{if(""!==t.protocol)return{error:"unknown protocol"};""!==t.pathname||e.startsWith("//")?(o="o",r=!1):(o="",r=!0)}const i=t.host.split(".").join("_"),l=new n.default(t.toString());let u;return r?(l.host=i+"."+s.env.proxyHost,l.protocol="",u=a.trimPrefix(l.toString(),"//")):(l.host=o+"_"+i+"."+s.env.proxyHost,l.protocol="https",u=l.toString()),{url:u}};t.frame=(e,t)=>({load(t){const{url:o,error:r}=l(t);if(r)throw"Error converting URL:"+r;e.src=o},onUnload(e){const o=o=>{let r;try{r=JSON.parse(o.data)}catch(e){return void(t&&console.log("response didn't parse",o.data))}r.messageType===i.unload&&e()};return window.addEventListener("message",o),()=>{window.removeEventListener("message",o)}},evaluate:(o,r=1e4)=>new Promise(((n,s)=>{Date.now();const{url:u,error:c}=l(e.src);if(c)return void s("error converting iframe URL: "+c);if(!e.contentWindow)return void s("iframe has no contentwindow");const p=e.src;let f;const h=e=>{let o;try{o=JSON.parse(e.data)}catch(o){return void(t&&console.log("response didn't parse",e.data))}[[o.verify.originalTarget,p],[o.verify.target,window.location.href]].map((e=>{const o=e.map((e=>a.trimSuffix(e,"/"))),r=o[0]===o[1];return!r&&t&&console.log("response didn't validate",e,o),r}))&&o.messageType===i.response&&(f(),n(o.messageData))};window.addEventListener("message",h);const d=setTimeout((()=>{f(),s("message timed out")}),r),g={verify:{originalTarget:p,target:p},messageType:i.evalwrap,messageData:o},v=()=>{t&&console.log("sending message!",JSON.stringify(g)),e.contentWindow.postMessage(JSON.stringify(g),"*")};e.addEventListener("load",v),f=()=>{clearTimeout(d),window.removeEventListener("message",h),e.removeEventListener("load",v)},v()}))})},593:function(e,t,o){var r=this&&this.__importDefault||function(e){return e&&e.__esModule?e:{default:e}};Object.defineProperty(t,"__esModule",{value:!0}),t.retryIfMissingScheme=t.trimSuffix=t.trimPrefix=t.isProxiedURL=t.isOriginalURL=t.isRelativeURL=void 0;const n=r(o(564)),s=o(392);t.isRelativeURL=e=>!e.startsWith("//")&&e.startsWith("/"),t.isOriginalURL=e=>{const t=!e.includes(s.env.proxyHost);try{const o=new n.default(e);return""===o.host?t:!o.host.includes(s.env.proxyHost)}catch(e){return t}},t.isProxiedURL=e=>!t.isOriginalURL(e),t.trimPrefix=function(e,t){return e.startsWith(t)&&-1!==e.indexOf(t)?e.substr(t.length):e},t.trimSuffix=function(e,t){const o=e.lastIndexOf(t);return e.endsWith(t)&&-1!==o?e.substring(0,o):e},t.retryIfMissingScheme=(e,t)=>{if(""==e.protocol&&e.pathname==t)return"https://"+t}},564:(e,t,o)=>{var r=o(418),n=o(129),s=/^[A-Za-z][A-Za-z0-9+-.]*:\/\//,a=/^([a-z][a-z0-9.+-]*:)?(\/\/)?([\S\s]*)/i,i=new RegExp("^[\\x09\\x0A\\x0B\\x0C\\x0D\\x20\\xA0\\u1680\\u180E\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u202F\\u205F\\u3000\\u2028\\u2029\\uFEFF]+");function l(e){return(e||"").toString().replace(i,"")}var u=[["#","hash"],["?","query"],function(e){return e.replace("\\","/")},["/","pathname"],["@","auth",1],[NaN,"host",void 0,1,1],[/:(\d+)$/,"port",void 0,1],[NaN,"hostname",void 0,1,1]],c={hash:1,query:1};function p(e){var t,r=("undefined"!=typeof window?window:void 0!==o.g?o.g:"undefined"!=typeof self?self:{}).location||{},n={},a=typeof(e=e||r);if("blob:"===e.protocol)n=new h(unescape(e.pathname),{});else if("string"===a)for(t in n=new h(e,{}),c)delete n[t];else if("object"===a){for(t in e)t in c||(n[t]=e[t]);void 0===n.slashes&&(n.slashes=s.test(e.href))}return n}function f(e){e=l(e);var t=a.exec(e);return{protocol:t[1]?t[1].toLowerCase():"",slashes:!!t[2],rest:t[3]}}function h(e,t,o){if(e=l(e),!(this instanceof h))return new h(e,t,o);var s,a,i,c,d,g,v=u.slice(),m=typeof t,y=this,w=0;for("object"!==m&&"string"!==m&&(o=t,t=null),o&&"function"!=typeof o&&(o=n.parse),t=p(t),s=!(a=f(e||"")).protocol&&!a.slashes,y.slashes=a.slashes||s&&t.slashes,y.protocol=a.protocol||t.protocol||"",e=a.rest,a.slashes||(v[3]=[/(.*)/,"pathname"]);w<v.length;w++)"function"!=typeof(c=v[w])?(i=c[0],g=c[1],i!=i?y[g]=e:"string"==typeof i?~(d=e.indexOf(i))&&("number"==typeof c[2]?(y[g]=e.slice(0,d),e=e.slice(d+c[2])):(y[g]=e.slice(d),e=e.slice(0,d))):(d=i.exec(e))&&(y[g]=d[1],e=e.slice(0,d.index)),y[g]=y[g]||s&&c[3]&&t[g]||"",c[4]&&(y[g]=y[g].toLowerCase())):e=c(e);o&&(y.query=o(y.query)),s&&t.slashes&&"/"!==y.pathname.charAt(0)&&(""!==y.pathname||""!==t.pathname)&&(y.pathname=function(e,t){if(""===e)return t;for(var o=(t||"/").split("/").slice(0,-1).concat(e.split("/")),r=o.length,n=o[r-1],s=!1,a=0;r--;)"."===o[r]?o.splice(r,1):".."===o[r]?(o.splice(r,1),a++):a&&(0===r&&(s=!0),o.splice(r,1),a--);return s&&o.unshift(""),"."!==n&&".."!==n||o.push(""),o.join("/")}(y.pathname,t.pathname)),r(y.port,y.protocol)||(y.host=y.hostname,y.port=""),y.username=y.password="",y.auth&&(c=y.auth.split(":"),y.username=c[0]||"",y.password=c[1]||""),y.origin=y.protocol&&y.host&&"file:"!==y.protocol?y.protocol+"//"+y.host:"null",y.href=y.toString()}h.prototype={set:function(e,t,o){var s=this;switch(e){case"query":"string"==typeof t&&t.length&&(t=(o||n.parse)(t)),s[e]=t;break;case"port":s[e]=t,r(t,s.protocol)?t&&(s.host=s.hostname+":"+t):(s.host=s.hostname,s[e]="");break;case"hostname":s[e]=t,s.port&&(t+=":"+s.port),s.host=t;break;case"host":s[e]=t,/:\d+$/.test(t)?(t=t.split(":"),s.port=t.pop(),s.hostname=t.join(":")):(s.hostname=t,s.port="");break;case"protocol":s.protocol=t.toLowerCase(),s.slashes=!o;break;case"pathname":case"hash":if(t){var a="pathname"===e?"/":"#";s[e]=t.charAt(0)!==a?a+t:t}else s[e]=t;break;default:s[e]=t}for(var i=0;i<u.length;i++){var l=u[i];l[4]&&(s[l[1]]=s[l[1]].toLowerCase())}return s.origin=s.protocol&&s.host&&"file:"!==s.protocol?s.protocol+"//"+s.host:"null",s.href=s.toString(),s},toString:function(e){e&&"function"==typeof e||(e=n.stringify);var t,o=this,r=o.protocol;r&&":"!==r.charAt(r.length-1)&&(r+=":");var s=r+(o.slashes?"//":"");return o.username&&(s+=o.username,o.password&&(s+=":"+o.password),s+="@"),s+=o.host+o.pathname,(t="object"==typeof o.query?e(o.query):o.query)&&(s+="?"!==t.charAt(0)?"?"+t:t),o.hash&&(s+=o.hash),s}},h.extractProtocol=f,h.location=p,h.trimLeft=l,h.qs=n,e.exports=h}},t={};function o(r){if(t[r])return t[r].exports;var n=t[r]={exports:{}};return e[r].call(n.exports,n,n.exports,o),n.exports}return o.g=function(){if("object"==typeof globalThis)return globalThis;try{return this||new Function("return this")()}catch(e){if("object"==typeof window)return window}}(),o(607)})();
 
 /***/ }),
 
 /***/ 178:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
+"use strict";
 var __webpack_unused_export__;
 
 __webpack_unused_export__ = ({ value: true });
@@ -324,7 +22,8 @@ const button = document.querySelector('button');
 const message = document.querySelector('#message');
 input.setAttribute('placeholder', 'https://www.example.com');
 input.value = 'https://www.example.com';
-const go = () => {
+const go = async () => {
+    // Validate user input
     try {
         const _ = new URL(input.value);
     }
@@ -332,13 +31,51 @@ const go = () => {
         message.innerText = `Error parsing URL: ${e}`;
         return;
     }
-    const { url, error } = the_proxy_client_1.convert.ToProxiedURL(input.value);
-    if (error) {
-        message.innerText = `Error converting URL: ${error}`;
+    // Navigate to the proxied user input
+    const proxiedFrame = the_proxy_client_1.frame(iframe);
+    try {
+        proxiedFrame.load(input.value);
+    }
+    catch (e) {
+        message.innerText = `Error loading site: ${e}`;
         return;
     }
-    message.innerText = `Navigating to: ${url}`;
-    iframe.src = url;
+    message.innerText = `Navigating to: ${input.value}`;
+    // This will change the color, and verify that it
+    // went through, by showing the (stringified) response
+    const changeColorInFrame = async () => {
+        let output;
+        try {
+            // prettier-ignore
+            const response = await proxiedFrame.evaluate(`
+        const style = document.createElement('style')
+        style.innerHTML = \`
+          * { background-color: #64a9ff !important; }
+        \`
+        document.head.appendChild(style)
+        return "Everything is blue!"
+      `);
+            output = 'Evaluation response (stringified): ' + response;
+        }
+        catch (e) {
+            output = 'Evaluation response timed out';
+        }
+        console.log(output);
+        message.innerText = output;
+    };
+    // Inject our color-changing script into the frame
+    changeColorInFrame();
+    // Changing the iframe src (which `proxiedFrame.load` does)
+    // won't take affect immediately, so our previous `changeColorInFrame`
+    // will be fired but on the old website.
+    //
+    // To fix this, we hook in to iframe unloads with `.onUnload`,
+    // and when this happens, we re-inject our script and also
+    // update the innerText to reflect
+    proxiedFrame.onUnload(() => {
+        message.innerText = `Navigating to: ${input.value}`;
+        changeColorInFrame();
+    });
 };
 input.onkeydown = (e) => {
     if (e.key === 'Enter') {
@@ -346,463 +83,6 @@ input.onkeydown = (e) => {
     }
 };
 button.onclick = go;
-
-
-/***/ }),
-
-/***/ 564:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
-
-
-
-var required = __webpack_require__(418)
-  , qs = __webpack_require__(129)
-  , slashes = /^[A-Za-z][A-Za-z0-9+-.]*:\/\//
-  , protocolre = /^([a-z][a-z0-9.+-]*:)?(\/\/)?([\S\s]*)/i
-  , whitespace = '[\\x09\\x0A\\x0B\\x0C\\x0D\\x20\\xA0\\u1680\\u180E\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u202F\\u205F\\u3000\\u2028\\u2029\\uFEFF]'
-  , left = new RegExp('^'+ whitespace +'+');
-
-/**
- * Trim a given string.
- *
- * @param {String} str String to trim.
- * @public
- */
-function trimLeft(str) {
-  return (str ? str : '').toString().replace(left, '');
-}
-
-/**
- * These are the parse rules for the URL parser, it informs the parser
- * about:
- *
- * 0. The char it Needs to parse, if it's a string it should be done using
- *    indexOf, RegExp using exec and NaN means set as current value.
- * 1. The property we should set when parsing this value.
- * 2. Indication if it's backwards or forward parsing, when set as number it's
- *    the value of extra chars that should be split off.
- * 3. Inherit from location if non existing in the parser.
- * 4. `toLowerCase` the resulting value.
- */
-var rules = [
-  ['#', 'hash'],                        // Extract from the back.
-  ['?', 'query'],                       // Extract from the back.
-  function sanitize(address) {          // Sanitize what is left of the address
-    return address.replace('\\', '/');
-  },
-  ['/', 'pathname'],                    // Extract from the back.
-  ['@', 'auth', 1],                     // Extract from the front.
-  [NaN, 'host', undefined, 1, 1],       // Set left over value.
-  [/:(\d+)$/, 'port', undefined, 1],    // RegExp the back.
-  [NaN, 'hostname', undefined, 1, 1]    // Set left over.
-];
-
-/**
- * These properties should not be copied or inherited from. This is only needed
- * for all non blob URL's as a blob URL does not include a hash, only the
- * origin.
- *
- * @type {Object}
- * @private
- */
-var ignore = { hash: 1, query: 1 };
-
-/**
- * The location object differs when your code is loaded through a normal page,
- * Worker or through a worker using a blob. And with the blobble begins the
- * trouble as the location object will contain the URL of the blob, not the
- * location of the page where our code is loaded in. The actual origin is
- * encoded in the `pathname` so we can thankfully generate a good "default"
- * location from it so we can generate proper relative URL's again.
- *
- * @param {Object|String} loc Optional default location object.
- * @returns {Object} lolcation object.
- * @public
- */
-function lolcation(loc) {
-  var globalVar;
-
-  if (typeof window !== 'undefined') globalVar = window;
-  else if (typeof __webpack_require__.g !== 'undefined') globalVar = __webpack_require__.g;
-  else if (typeof self !== 'undefined') globalVar = self;
-  else globalVar = {};
-
-  var location = globalVar.location || {};
-  loc = loc || location;
-
-  var finaldestination = {}
-    , type = typeof loc
-    , key;
-
-  if ('blob:' === loc.protocol) {
-    finaldestination = new Url(unescape(loc.pathname), {});
-  } else if ('string' === type) {
-    finaldestination = new Url(loc, {});
-    for (key in ignore) delete finaldestination[key];
-  } else if ('object' === type) {
-    for (key in loc) {
-      if (key in ignore) continue;
-      finaldestination[key] = loc[key];
-    }
-
-    if (finaldestination.slashes === undefined) {
-      finaldestination.slashes = slashes.test(loc.href);
-    }
-  }
-
-  return finaldestination;
-}
-
-/**
- * @typedef ProtocolExtract
- * @type Object
- * @property {String} protocol Protocol matched in the URL, in lowercase.
- * @property {Boolean} slashes `true` if protocol is followed by "//", else `false`.
- * @property {String} rest Rest of the URL that is not part of the protocol.
- */
-
-/**
- * Extract protocol information from a URL with/without double slash ("//").
- *
- * @param {String} address URL we want to extract from.
- * @return {ProtocolExtract} Extracted information.
- * @private
- */
-function extractProtocol(address) {
-  address = trimLeft(address);
-  var match = protocolre.exec(address);
-
-  return {
-    protocol: match[1] ? match[1].toLowerCase() : '',
-    slashes: !!match[2],
-    rest: match[3]
-  };
-}
-
-/**
- * Resolve a relative URL pathname against a base URL pathname.
- *
- * @param {String} relative Pathname of the relative URL.
- * @param {String} base Pathname of the base URL.
- * @return {String} Resolved pathname.
- * @private
- */
-function resolve(relative, base) {
-  if (relative === '') return base;
-
-  var path = (base || '/').split('/').slice(0, -1).concat(relative.split('/'))
-    , i = path.length
-    , last = path[i - 1]
-    , unshift = false
-    , up = 0;
-
-  while (i--) {
-    if (path[i] === '.') {
-      path.splice(i, 1);
-    } else if (path[i] === '..') {
-      path.splice(i, 1);
-      up++;
-    } else if (up) {
-      if (i === 0) unshift = true;
-      path.splice(i, 1);
-      up--;
-    }
-  }
-
-  if (unshift) path.unshift('');
-  if (last === '.' || last === '..') path.push('');
-
-  return path.join('/');
-}
-
-/**
- * The actual URL instance. Instead of returning an object we've opted-in to
- * create an actual constructor as it's much more memory efficient and
- * faster and it pleases my OCD.
- *
- * It is worth noting that we should not use `URL` as class name to prevent
- * clashes with the global URL instance that got introduced in browsers.
- *
- * @constructor
- * @param {String} address URL we want to parse.
- * @param {Object|String} [location] Location defaults for relative paths.
- * @param {Boolean|Function} [parser] Parser for the query string.
- * @private
- */
-function Url(address, location, parser) {
-  address = trimLeft(address);
-
-  if (!(this instanceof Url)) {
-    return new Url(address, location, parser);
-  }
-
-  var relative, extracted, parse, instruction, index, key
-    , instructions = rules.slice()
-    , type = typeof location
-    , url = this
-    , i = 0;
-
-  //
-  // The following if statements allows this module two have compatibility with
-  // 2 different API:
-  //
-  // 1. Node.js's `url.parse` api which accepts a URL, boolean as arguments
-  //    where the boolean indicates that the query string should also be parsed.
-  //
-  // 2. The `URL` interface of the browser which accepts a URL, object as
-  //    arguments. The supplied object will be used as default values / fall-back
-  //    for relative paths.
-  //
-  if ('object' !== type && 'string' !== type) {
-    parser = location;
-    location = null;
-  }
-
-  if (parser && 'function' !== typeof parser) parser = qs.parse;
-
-  location = lolcation(location);
-
-  //
-  // Extract protocol information before running the instructions.
-  //
-  extracted = extractProtocol(address || '');
-  relative = !extracted.protocol && !extracted.slashes;
-  url.slashes = extracted.slashes || relative && location.slashes;
-  url.protocol = extracted.protocol || location.protocol || '';
-  address = extracted.rest;
-
-  //
-  // When the authority component is absent the URL starts with a path
-  // component.
-  //
-  if (!extracted.slashes) instructions[3] = [/(.*)/, 'pathname'];
-
-  for (; i < instructions.length; i++) {
-    instruction = instructions[i];
-
-    if (typeof instruction === 'function') {
-      address = instruction(address);
-      continue;
-    }
-
-    parse = instruction[0];
-    key = instruction[1];
-
-    if (parse !== parse) {
-      url[key] = address;
-    } else if ('string' === typeof parse) {
-      if (~(index = address.indexOf(parse))) {
-        if ('number' === typeof instruction[2]) {
-          url[key] = address.slice(0, index);
-          address = address.slice(index + instruction[2]);
-        } else {
-          url[key] = address.slice(index);
-          address = address.slice(0, index);
-        }
-      }
-    } else if ((index = parse.exec(address))) {
-      url[key] = index[1];
-      address = address.slice(0, index.index);
-    }
-
-    url[key] = url[key] || (
-      relative && instruction[3] ? location[key] || '' : ''
-    );
-
-    //
-    // Hostname, host and protocol should be lowercased so they can be used to
-    // create a proper `origin`.
-    //
-    if (instruction[4]) url[key] = url[key].toLowerCase();
-  }
-
-  //
-  // Also parse the supplied query string in to an object. If we're supplied
-  // with a custom parser as function use that instead of the default build-in
-  // parser.
-  //
-  if (parser) url.query = parser(url.query);
-
-  //
-  // If the URL is relative, resolve the pathname against the base URL.
-  //
-  if (
-      relative
-    && location.slashes
-    && url.pathname.charAt(0) !== '/'
-    && (url.pathname !== '' || location.pathname !== '')
-  ) {
-    url.pathname = resolve(url.pathname, location.pathname);
-  }
-
-  //
-  // We should not add port numbers if they are already the default port number
-  // for a given protocol. As the host also contains the port number we're going
-  // override it with the hostname which contains no port number.
-  //
-  if (!required(url.port, url.protocol)) {
-    url.host = url.hostname;
-    url.port = '';
-  }
-
-  //
-  // Parse down the `auth` for the username and password.
-  //
-  url.username = url.password = '';
-  if (url.auth) {
-    instruction = url.auth.split(':');
-    url.username = instruction[0] || '';
-    url.password = instruction[1] || '';
-  }
-
-  url.origin = url.protocol && url.host && url.protocol !== 'file:'
-    ? url.protocol +'//'+ url.host
-    : 'null';
-
-  //
-  // The href is just the compiled result.
-  //
-  url.href = url.toString();
-}
-
-/**
- * This is convenience method for changing properties in the URL instance to
- * insure that they all propagate correctly.
- *
- * @param {String} part          Property we need to adjust.
- * @param {Mixed} value          The newly assigned value.
- * @param {Boolean|Function} fn  When setting the query, it will be the function
- *                               used to parse the query.
- *                               When setting the protocol, double slash will be
- *                               removed from the final url if it is true.
- * @returns {URL} URL instance for chaining.
- * @public
- */
-function set(part, value, fn) {
-  var url = this;
-
-  switch (part) {
-    case 'query':
-      if ('string' === typeof value && value.length) {
-        value = (fn || qs.parse)(value);
-      }
-
-      url[part] = value;
-      break;
-
-    case 'port':
-      url[part] = value;
-
-      if (!required(value, url.protocol)) {
-        url.host = url.hostname;
-        url[part] = '';
-      } else if (value) {
-        url.host = url.hostname +':'+ value;
-      }
-
-      break;
-
-    case 'hostname':
-      url[part] = value;
-
-      if (url.port) value += ':'+ url.port;
-      url.host = value;
-      break;
-
-    case 'host':
-      url[part] = value;
-
-      if (/:\d+$/.test(value)) {
-        value = value.split(':');
-        url.port = value.pop();
-        url.hostname = value.join(':');
-      } else {
-        url.hostname = value;
-        url.port = '';
-      }
-
-      break;
-
-    case 'protocol':
-      url.protocol = value.toLowerCase();
-      url.slashes = !fn;
-      break;
-
-    case 'pathname':
-    case 'hash':
-      if (value) {
-        var char = part === 'pathname' ? '/' : '#';
-        url[part] = value.charAt(0) !== char ? char + value : value;
-      } else {
-        url[part] = value;
-      }
-      break;
-
-    default:
-      url[part] = value;
-  }
-
-  for (var i = 0; i < rules.length; i++) {
-    var ins = rules[i];
-
-    if (ins[4]) url[ins[1]] = url[ins[1]].toLowerCase();
-  }
-
-  url.origin = url.protocol && url.host && url.protocol !== 'file:'
-    ? url.protocol +'//'+ url.host
-    : 'null';
-
-  url.href = url.toString();
-
-  return url;
-}
-
-/**
- * Transform the properties back in to a valid and full URL string.
- *
- * @param {Function} stringify Optional query stringify function.
- * @returns {String} Compiled version of the URL.
- * @public
- */
-function toString(stringify) {
-  if (!stringify || 'function' !== typeof stringify) stringify = qs.stringify;
-
-  var query
-    , url = this
-    , protocol = url.protocol;
-
-  if (protocol && protocol.charAt(protocol.length - 1) !== ':') protocol += ':';
-
-  var result = protocol + (url.slashes ? '//' : '');
-
-  if (url.username) {
-    result += url.username;
-    if (url.password) result += ':'+ url.password;
-    result += '@';
-  }
-
-  result += url.host + url.pathname;
-
-  query = 'object' === typeof url.query ? stringify(url.query) : url.query;
-  if (query) result += '?' !== query.charAt(0) ? '?'+ query : query;
-
-  if (url.hash) result += url.hash;
-
-  return result;
-}
-
-Url.prototype = { set: set, toString: toString };
-
-//
-// Expose the URL parser and some additional properties that might be useful for
-// others or testing.
-//
-Url.extractProtocol = extractProtocol;
-Url.location = lolcation;
-Url.trimLeft = trimLeft;
-Url.qs = qs;
-
-module.exports = Url;
 
 
 /***/ })
@@ -831,19 +111,6 @@ module.exports = Url;
 /******/ 		// Return the exports of the module
 /******/ 		return module.exports;
 /******/ 	}
-/******/ 	
-/************************************************************************/
-/******/ 	/* webpack/runtime/global */
-/******/ 	(() => {
-/******/ 		__webpack_require__.g = (function() {
-/******/ 			if (typeof globalThis === 'object') return globalThis;
-/******/ 			try {
-/******/ 				return this || new Function('return this')();
-/******/ 			} catch (e) {
-/******/ 				if (typeof window === 'object') return window;
-/******/ 			}
-/******/ 		})();
-/******/ 	})();
 /******/ 	
 /************************************************************************/
 /******/ 	// startup
