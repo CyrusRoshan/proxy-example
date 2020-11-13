@@ -34,12 +34,14 @@ const go = async () => {
     try {
       // prettier-ignore
       const response = await proxiedFrame.evaluate(`
-        const style = document.createElement('style')
-        style.innerHTML = \`
-          * { background-color: #64a9ff !important; }
-        \`
-        document.head.appendChild(style)
-        return "Everything is blue!"
+        (() => {
+          const style = document.createElement('style')
+          style.innerHTML = \`
+            * { background-color: #64a9ff !important; }
+          \`
+          document.head.appendChild(style)
+          return "Everything is blue!"
+        })()
       `)
       output = 'Evaluation response (stringified): ' + response
     } catch (e) {
